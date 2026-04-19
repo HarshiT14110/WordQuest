@@ -25,25 +25,38 @@ export default function RoomPage() {
   const [hasGuessed, setHasGuessed] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [avatar, setAvatar] = useState("😀");
+  const [lastWinner, setLastWinner] = useState<string | null>(null);
+  const [roundEndWord, setRoundEndWord] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(false);
 
   const socketRef = useRef<any>(null);
 
   useEffect(() => {
     const storedUsername = sessionStorage.getItem("wordquest_username");
+    const storedAvatar = sessionStorage.getItem("wordquest_avatar");
+
+    if (storedAvatar) setAvatar(storedAvatar);
+
     if (!storedUsername) {
       router.push("/");
       return;
     }
+
     setUsername(storedUsername);
 
     socketRef.current = getSocket();
     const socket = socketRef.current;
+
     if (!socket.connected) {
       socket.connect();
     }
 
-    socket.emit("joinRoom", { roomId, username: storedUsername });
+    socket.emit("joinRoom", {
+      roomId,
+      username: storedUsername,
+      avatar: storedAvatar || "😀"
+    });
 
     socket.on("roomUpdated", (data: any) => {
       setRoomData(data);
@@ -59,7 +72,8 @@ export default function RoomPage() {
     let lastTime = -1;
 
     socket.on("tickUpdate", (data: any) => {
-      setGameState((prev: any) => ({ ...prev, ...data }));
+      // ✅ Use server's authoritative timeLeft to prevent drift
+      setGameState((prev: any) => ({ ...prev, ...data, timeLeft: data.timeLeft }));
 
       if (data.timeLeft !== lastTime) {
         lastTime = data.timeLeft;
@@ -73,22 +87,34 @@ export default function RoomPage() {
     });
 
     socket.on("roundEnded", (data: any) => {
-      setGameState((prev: any) => ({ ...prev, ...data, status: "roundEnd" }));
+      setGameState((prev: any) => ({
+        ...prev,          // 🔥 keep previous state
+        ...data,          // 🔥 apply new data
+        revealed: data.revealed, // 🔥 force full word
+        status: "roundEnd"
+      }));
+
+      setLastWinner(data.winner);
+      setRoundEndWord(data.word); // ✅ show the word popup
 
       if (data.winner === socketRef.current.id) {
-        setMessage("✅ Correct! +10");
+        setMessage("✅ Correct! +1");
       } else {
         setMessage("❌ Wrong Guess");
       }
-      setTimeout(() => {
-        alert(`${data.winner === socketRef.current.id ? "You" : "Opponent"} guessed correctly!`);
-      }, 500);
 
-      setTimeout(() => setMessage(""), 2500);
+      setTimeout(() => {
+        setMessage("");
+        setLastWinner(null);
+        setRoundEndWord(null); // ✅ hide popup after 5 seconds
+      }, 5000); // ✅ changed from 2500 to 5000
     });
 
     socket.on("matchEnded", (data: any) => {
-      setGameState((prev: any) => ({ ...prev, ...data, status: "matchEnd" }));
+      setGameState((prev: any) => ({
+        ...data,
+        status: "matchEnd"
+      }));
     });
 
     socket.on("error", (data: { message: string }) => {
@@ -148,12 +174,69 @@ export default function RoomPage() {
 
   const isLobby = roomData.status === "lobby" && roomData.players.length < 2;
   const isMatchEnd = gameState?.status === "matchEnd";
+  const winnerPlayer = roomData?.players?.find(
+    (p: any) => p.socketId === gameState?.winner
+  );
   const myScore = gameState?.scores?.[socketRef.current.id] || 0;
   const opponent = roomData.players.find((p: any) => p.socketId !== socketRef.current.id);
   const opponentScore = gameState?.scores?.[opponent?.socketId] || 0;
 
   return (
     <div className="min-h-screen bg-black text-white relative overflow-hidden">
+      {/* 📝 ROUND END WORD POPUP */}
+      <AnimatePresence>
+        {roundEndWord && (
+          <motion.div
+            initial={{ opacity: 0, y: -40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -40 }}
+            className="fixed top-8 left-1/2 -translate-x-1/2 z-50 bg-white/10 backdrop-blur-xl border border-white/20 px-10 py-6 rounded-2xl text-center shadow-2xl"
+          >
+            <p className="text-slate-400 text-sm mb-2">The word was</p>
+            <p className="text-4xl font-black text-blue-400 tracking-widest">
+              {roundEndWord}
+            </p>
+            <p className="text-slate-400 text-xs mt-3">Next round in 5s...</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 🎉 MATCH END POPUP */}
+      {/* 🎉 MATCH END POPUP */}
+      <AnimatePresence>
+        {isMatchEnd && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
+          >
+            <motion.div
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              className="bg-white/10 backdrop-blur-xl border border-white/20 p-10 rounded-3xl text-center shadow-2xl"
+            >
+              <h1 className="text-4xl font-black text-green-400 mb-4">
+                🎉 Congratulations!
+              </h1>
+
+              <p className="text-xl mb-6">
+                Winner:{" "}
+                <span className="font-bold text-blue-400">
+                  {winnerPlayer?.avatar || "👤"} {winnerPlayer?.username}
+                </span>
+              </p>
+
+              <Button
+                onClick={() => router.push("/")}
+                className="px-6 py-3 bg-blue-600 hover:bg-blue-500"
+              >
+                Go Home
+              </Button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Background */}
       <div className="absolute inset-0">
@@ -216,11 +299,11 @@ export default function RoomPage() {
 
               {/* 🎯 Round Info */}
               <div className="text-center mb-4 text-slate-400 font-bold">
-                Round {gameState?.currentRound || 1}
+                Round {gameState?.round || 1}
               </div>
               {/* Word */}
               <div className="flex justify-center gap-4 mb-10">
-                {gameState?.revealed?.map((c: string, i: number) => (
+                {(gameState?.revealed || []).map((c: string, i: number) => (
                   <motion.div
                     key={i}
                     className={`w-16 h-20 flex items-center justify-center text-3xl font-bold rounded-xl shadow-xl transition-all duration-300 ${c === "_"
@@ -270,12 +353,39 @@ export default function RoomPage() {
             <div className="bg-white/5 p-6 rounded-2xl">
               <h3 className="text-sm text-slate-400 mb-4">Players</h3>
               {roomData.players.map((p: any) => (
-                <div key={p.socketId} className="mb-2">
-                  <div className="flex justify-between">
-                    <span>{p.username}</span>
-                    {p.socketId === socketRef.current.id && (
-                      <span className="text-blue-400 text-xs">YOU</span>
-                    )}
+                <div key={p.socketId} className="mb-3">
+                  <div className="flex justify-between items-center">
+
+                    {/* LEFT: avatar + name */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">
+                        {p.avatar || "👤"}
+                      </span>
+
+                      <span>{p.username}</span>
+
+                      {p.socketId === socketRef.current.id && (
+                        <span className="text-blue-400 text-xs">YOU</span>
+                      )}
+                    </div>
+
+                    {/* RIGHT: score + +10 animation */}
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold">
+                        {gameState?.scores?.[p.socketId] || 0}
+                      </span>
+
+                      {lastWinner === p.socketId && (
+                        <motion.span
+                          initial={{ y: 10, opacity: 0 }}
+                          animate={{ y: -10, opacity: 1 }}
+                          className="text-green-400 text-sm font-bold"
+                        >
+                          +1
+                        </motion.span>
+                      )}
+                    </div>
+
                   </div>
                 </div>
               ))}

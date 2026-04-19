@@ -235,6 +235,7 @@ function Home() {
         if (isCreating) return;
         setIsCreating(true);
         sessionStorage.setItem("wordquest_username", username);
+        sessionStorage.setItem("wordquest_avatar", selectedEmoji);
         const socket = (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$socket$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["getSocket"])();
         if (!socket.connected) socket.connect();
         socket.emit("createRoom", {

@@ -72,11 +72,11 @@ app.prepare().then(() => {
       }
     });
 
-    socket.on('joinRoom', async ({ roomId, username }) => {
+    socket.on('joinRoom', async ({ roomId, username, avatar }) => {
       try {
         console.log("Join attempt:", roomId, username);
 
-        const room = await gameService.joinRoom(roomId, socket.id, username);
+        const room = await gameService.joinRoom(roomId, socket.id, username, avatar);
 
         if (!room) {
           socket.emit('error', { message: "Room not found" });

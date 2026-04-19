@@ -26,7 +26,7 @@ export default function Home() {
     setIsCreating(true);
 
     sessionStorage.setItem("wordquest_username", username);
-
+    sessionStorage.setItem("wordquest_avatar", selectedEmoji);
     const socket = getSocket();
     if (!socket.connected) socket.connect();
 
@@ -141,8 +141,8 @@ export default function Home() {
                   whileTap={{ scale: 0.9 }}
                   onClick={() => setSelectedEmoji(emoji)}
                   className={`flex h-12 w-12 items-center justify-center text-2xl rounded-2xl transition-all duration-300 ${selectedEmoji === emoji
-                      ? "bg-white/20 border-2 border-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.4)] scale-110"
-                      : "bg-white/5 border border-white/5 hover:bg-white/10"
+                    ? "bg-white/20 border-2 border-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.4)] scale-110"
+                    : "bg-white/5 border border-white/5 hover:bg-white/10"
                     }`}
                 >
                   {emoji}

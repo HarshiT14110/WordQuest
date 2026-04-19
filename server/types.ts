@@ -7,6 +7,7 @@ export interface Player {
 export interface RoomState {
   id: string;
   players: Player[];
+  avatar?: string;
   targetWord: string;
   revealedWord: string[];
   guesses: Map<string, string>; // socketId -> guess
@@ -16,6 +17,7 @@ export interface RoomState {
   tickTimer: number;
   status: 'lobby' | 'playing' | 'roundEnd' | 'matchEnd';
   winner?: string; // Winner of match
+  roundEnded?: boolean; // 🔥 prevents duplicate endRound
 }
 
 export interface GameEvent {

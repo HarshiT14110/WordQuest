@@ -124,6 +124,7 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$socket$2e$ts__$5b$app
 var __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$Button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/components/ui/Button.tsx [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$Input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/components/ui/Input.tsx [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$render$2f$components$2f$motion$2f$proxy$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/framer-motion/dist/es/render/components/motion/proxy.mjs [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$components$2f$AnimatePresence$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/framer-motion/dist/es/components/AnimatePresence/index.mjs [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$loader$2d$circle$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Loader2$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/loader-circle.js [app-client] (ecmascript) <export default as Loader2>");
 ;
 var _s = __turbopack_context__.k.signature();
@@ -147,11 +148,16 @@ function RoomPage() {
     const [hasGuessed, setHasGuessed] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
     const [copied, setCopied] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
     const [error, setError] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
+    const [avatar, setAvatar] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])("😀");
+    const [lastWinner, setLastWinner] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
+    const [roundEndWord, setRoundEndWord] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
     const [isMuted, setIsMuted] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
     const socketRef = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRef"])(null);
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
         "RoomPage.useEffect": ()=>{
             const storedUsername = sessionStorage.getItem("wordquest_username");
+            const storedAvatar = sessionStorage.getItem("wordquest_avatar");
+            if (storedAvatar) setAvatar(storedAvatar);
             if (!storedUsername) {
                 router.push("/");
                 return;
@@ -164,7 +170,8 @@ function RoomPage() {
             }
             socket.emit("joinRoom", {
                 roomId,
-                username: storedUsername
+                username: storedUsername,
+                avatar: storedAvatar || "😀"
             });
             socket.on("roomUpdated", {
                 "RoomPage.useEffect": (data)=>{
@@ -188,10 +195,12 @@ function RoomPage() {
             let lastTime = -1;
             socket.on("tickUpdate", {
                 "RoomPage.useEffect": (data)=>{
+                    // ✅ Use server's authoritative timeLeft to prevent drift
                     setGameState({
                         "RoomPage.useEffect": (prev)=>({
                                 ...prev,
-                                ...data
+                                ...data,
+                                timeLeft: data.timeLeft
                             })
                     }["RoomPage.useEffect"]);
                     if (data.timeLeft !== lastTime) {
@@ -212,29 +221,30 @@ function RoomPage() {
                         "RoomPage.useEffect": (prev)=>({
                                 ...prev,
                                 ...data,
+                                revealed: data.revealed,
                                 status: "roundEnd"
                             })
                     }["RoomPage.useEffect"]);
+                    setLastWinner(data.winner);
+                    setRoundEndWord(data.word); // ✅ show the word popup
                     if (data.winner === socketRef.current.id) {
-                        setMessage("✅ Correct! +10");
+                        setMessage("✅ Correct! +1");
                     } else {
                         setMessage("❌ Wrong Guess");
                     }
                     setTimeout({
                         "RoomPage.useEffect": ()=>{
-                            alert(`${data.winner === socketRef.current.id ? "You" : "Opponent"} guessed correctly!`);
+                            setMessage("");
+                            setLastWinner(null);
+                            setRoundEndWord(null); // ✅ hide popup after 5 seconds
                         }
-                    }["RoomPage.useEffect"], 500);
-                    setTimeout({
-                        "RoomPage.useEffect": ()=>setMessage("")
-                    }["RoomPage.useEffect"], 2500);
+                    }["RoomPage.useEffect"], 5000); // ✅ changed from 2500 to 5000
                 }
             }["RoomPage.useEffect"]);
             socket.on("matchEnded", {
                 "RoomPage.useEffect": (data)=>{
                     setGameState({
                         "RoomPage.useEffect": (prev)=>({
-                                ...prev,
                                 ...data,
                                 status: "matchEnd"
                             })
@@ -292,7 +302,7 @@ function RoomPage() {
                     children: "Error"
                 }, void 0, false, {
                     fileName: "[project]/app/room/[roomId]/page.tsx",
-                    lineNumber: 131,
+                    lineNumber: 157,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -300,7 +310,7 @@ function RoomPage() {
                     children: error
                 }, void 0, false, {
                     fileName: "[project]/app/room/[roomId]/page.tsx",
-                    lineNumber: 132,
+                    lineNumber: 158,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$Button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -308,13 +318,13 @@ function RoomPage() {
                     children: "Back to Home"
                 }, void 0, false, {
                     fileName: "[project]/app/room/[roomId]/page.tsx",
-                    lineNumber: 133,
+                    lineNumber: 159,
                     columnNumber: 9
                 }, this)
             ]
         }, void 0, true, {
             fileName: "[project]/app/room/[roomId]/page.tsx",
-            lineNumber: 130,
+            lineNumber: 156,
             columnNumber: 7
         }, this);
     }
@@ -328,7 +338,7 @@ function RoomPage() {
                         className: "mx-auto mb-4 h-12 w-12 animate-spin text-blue-500"
                     }, void 0, false, {
                         fileName: "[project]/app/room/[roomId]/page.tsx",
-                        lineNumber: 142,
+                        lineNumber: 168,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -336,29 +346,158 @@ function RoomPage() {
                         children: "Preparing your quest..."
                     }, void 0, false, {
                         fileName: "[project]/app/room/[roomId]/page.tsx",
-                        lineNumber: 143,
+                        lineNumber: 169,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/app/room/[roomId]/page.tsx",
-                lineNumber: 141,
+                lineNumber: 167,
                 columnNumber: 9
             }, this)
         }, void 0, false, {
             fileName: "[project]/app/room/[roomId]/page.tsx",
-            lineNumber: 140,
+            lineNumber: 166,
             columnNumber: 7
         }, this);
     }
     const isLobby = roomData.status === "lobby" && roomData.players.length < 2;
     const isMatchEnd = gameState?.status === "matchEnd";
+    const winnerPlayer = roomData?.players?.find((p)=>p.socketId === gameState?.winner);
     const myScore = gameState?.scores?.[socketRef.current.id] || 0;
     const opponent = roomData.players.find((p)=>p.socketId !== socketRef.current.id);
     const opponentScore = gameState?.scores?.[opponent?.socketId] || 0;
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
         className: "min-h-screen bg-black text-white relative overflow-hidden",
         children: [
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$components$2f$AnimatePresence$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["AnimatePresence"], {
+                children: roundEndWord && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$render$2f$components$2f$motion$2f$proxy$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["motion"].div, {
+                    initial: {
+                        opacity: 0,
+                        y: -40
+                    },
+                    animate: {
+                        opacity: 1,
+                        y: 0
+                    },
+                    exit: {
+                        opacity: 0,
+                        y: -40
+                    },
+                    className: "fixed top-8 left-1/2 -translate-x-1/2 z-50 bg-white/10 backdrop-blur-xl border border-white/20 px-10 py-6 rounded-2xl text-center shadow-2xl",
+                    children: [
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                            className: "text-slate-400 text-sm mb-2",
+                            children: "The word was"
+                        }, void 0, false, {
+                            fileName: "[project]/app/room/[roomId]/page.tsx",
+                            lineNumber: 195,
+                            columnNumber: 13
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                            className: "text-4xl font-black text-blue-400 tracking-widest",
+                            children: roundEndWord
+                        }, void 0, false, {
+                            fileName: "[project]/app/room/[roomId]/page.tsx",
+                            lineNumber: 196,
+                            columnNumber: 13
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                            className: "text-slate-400 text-xs mt-3",
+                            children: "Next round in 5s..."
+                        }, void 0, false, {
+                            fileName: "[project]/app/room/[roomId]/page.tsx",
+                            lineNumber: 199,
+                            columnNumber: 13
+                        }, this)
+                    ]
+                }, void 0, true, {
+                    fileName: "[project]/app/room/[roomId]/page.tsx",
+                    lineNumber: 189,
+                    columnNumber: 11
+                }, this)
+            }, void 0, false, {
+                fileName: "[project]/app/room/[roomId]/page.tsx",
+                lineNumber: 187,
+                columnNumber: 7
+            }, this),
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$components$2f$AnimatePresence$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["AnimatePresence"], {
+                children: isMatchEnd && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$render$2f$components$2f$motion$2f$proxy$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["motion"].div, {
+                    initial: {
+                        opacity: 0
+                    },
+                    animate: {
+                        opacity: 1
+                    },
+                    exit: {
+                        opacity: 0
+                    },
+                    className: "fixed inset-0 z-50 flex items-center justify-center bg-black/80",
+                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$render$2f$components$2f$motion$2f$proxy$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["motion"].div, {
+                        initial: {
+                            scale: 0.8
+                        },
+                        animate: {
+                            scale: 1
+                        },
+                        className: "bg-white/10 backdrop-blur-xl border border-white/20 p-10 rounded-3xl text-center shadow-2xl",
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h1", {
+                                className: "text-4xl font-black text-green-400 mb-4",
+                                children: "🎉 Congratulations!"
+                            }, void 0, false, {
+                                fileName: "[project]/app/room/[roomId]/page.tsx",
+                                lineNumber: 219,
+                                columnNumber: 15
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                className: "text-xl mb-6",
+                                children: [
+                                    "Winner:",
+                                    " ",
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                        className: "font-bold text-blue-400",
+                                        children: [
+                                            winnerPlayer?.avatar || "👤",
+                                            " ",
+                                            winnerPlayer?.username
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/app/room/[roomId]/page.tsx",
+                                        lineNumber: 225,
+                                        columnNumber: 17
+                                    }, this)
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/app/room/[roomId]/page.tsx",
+                                lineNumber: 223,
+                                columnNumber: 15
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$Button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
+                                onClick: ()=>router.push("/"),
+                                className: "px-6 py-3 bg-blue-600 hover:bg-blue-500",
+                                children: "Go Home"
+                            }, void 0, false, {
+                                fileName: "[project]/app/room/[roomId]/page.tsx",
+                                lineNumber: 230,
+                                columnNumber: 15
+                            }, this)
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/app/room/[roomId]/page.tsx",
+                        lineNumber: 214,
+                        columnNumber: 13
+                    }, this)
+                }, void 0, false, {
+                    fileName: "[project]/app/room/[roomId]/page.tsx",
+                    lineNumber: 208,
+                    columnNumber: 11
+                }, this)
+            }, void 0, false, {
+                fileName: "[project]/app/room/[roomId]/page.tsx",
+                lineNumber: 206,
+                columnNumber: 7
+            }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                 className: "absolute inset-0",
                 children: [
@@ -366,20 +505,20 @@ function RoomPage() {
                         className: "absolute w-[600px] h-[600px] bg-blue-500/20 blur-[140px] top-[-20%] left-[-20%]"
                     }, void 0, false, {
                         fileName: "[project]/app/room/[roomId]/page.tsx",
-                        lineNumber: 160,
+                        lineNumber: 243,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                         className: "absolute w-[600px] h-[600px] bg-purple-500/20 blur-[140px] bottom-[-20%] right-[-20%]"
                     }, void 0, false, {
                         fileName: "[project]/app/room/[roomId]/page.tsx",
-                        lineNumber: 161,
+                        lineNumber: 244,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/app/room/[roomId]/page.tsx",
-                lineNumber: 159,
+                lineNumber: 242,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -394,7 +533,7 @@ function RoomPage() {
                                 children: isMuted ? "🔇" : "🔊"
                             }, void 0, false, {
                                 fileName: "[project]/app/room/[roomId]/page.tsx",
-                                lineNumber: 168,
+                                lineNumber: 251,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$Button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -403,7 +542,7 @@ function RoomPage() {
                                 children: "← Exit"
                             }, void 0, false, {
                                 fileName: "[project]/app/room/[roomId]/page.tsx",
-                                lineNumber: 174,
+                                lineNumber: 257,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -415,19 +554,19 @@ function RoomPage() {
                                         children: roomId
                                     }, void 0, false, {
                                         fileName: "[project]/app/room/[roomId]/page.tsx",
-                                        lineNumber: 179,
+                                        lineNumber: 262,
                                         columnNumber: 19
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/room/[roomId]/page.tsx",
-                                lineNumber: 178,
+                                lineNumber: 261,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/room/[roomId]/page.tsx",
-                        lineNumber: 167,
+                        lineNumber: 250,
                         columnNumber: 9
                     }, this),
                     isLobby ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -438,7 +577,7 @@ function RoomPage() {
                                 children: "Waiting for Opponent"
                             }, void 0, false, {
                                 fileName: "[project]/app/room/[roomId]/page.tsx",
-                                lineNumber: 186,
+                                lineNumber: 269,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -446,13 +585,13 @@ function RoomPage() {
                                 children: "Share the Room ID to start"
                             }, void 0, false, {
                                 fileName: "[project]/app/room/[roomId]/page.tsx",
-                                lineNumber: 187,
+                                lineNumber: 270,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/room/[roomId]/page.tsx",
-                        lineNumber: 185,
+                        lineNumber: 268,
                         columnNumber: 11
                     }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                         className: "grid lg:grid-cols-[1fr_300px] gap-8",
@@ -467,7 +606,7 @@ function RoomPage() {
                                                 children: "TIME LEFT"
                                             }, void 0, false, {
                                                 fileName: "[project]/app/room/[roomId]/page.tsx",
-                                                lineNumber: 198,
+                                                lineNumber: 281,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -478,13 +617,13 @@ function RoomPage() {
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/app/room/[roomId]/page.tsx",
-                                                lineNumber: 199,
+                                                lineNumber: 282,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/app/room/[roomId]/page.tsx",
-                                        lineNumber: 197,
+                                        lineNumber: 280,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -497,7 +636,7 @@ function RoomPage() {
                                                         children: "YOU"
                                                     }, void 0, false, {
                                                         fileName: "[project]/app/room/[roomId]/page.tsx",
-                                                        lineNumber: 206,
+                                                        lineNumber: 289,
                                                         columnNumber: 19
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -505,13 +644,13 @@ function RoomPage() {
                                                         children: myScore
                                                     }, void 0, false, {
                                                         fileName: "[project]/app/room/[roomId]/page.tsx",
-                                                        lineNumber: 207,
+                                                        lineNumber: 290,
                                                         columnNumber: 19
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/app/room/[roomId]/page.tsx",
-                                                lineNumber: 205,
+                                                lineNumber: 288,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -521,7 +660,7 @@ function RoomPage() {
                                                         children: "OPPONENT"
                                                     }, void 0, false, {
                                                         fileName: "[project]/app/room/[roomId]/page.tsx",
-                                                        lineNumber: 211,
+                                                        lineNumber: 294,
                                                         columnNumber: 19
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -529,45 +668,45 @@ function RoomPage() {
                                                         children: opponentScore
                                                     }, void 0, false, {
                                                         fileName: "[project]/app/room/[roomId]/page.tsx",
-                                                        lineNumber: 212,
+                                                        lineNumber: 295,
                                                         columnNumber: 19
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/app/room/[roomId]/page.tsx",
-                                                lineNumber: 210,
+                                                lineNumber: 293,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/app/room/[roomId]/page.tsx",
-                                        lineNumber: 204,
+                                        lineNumber: 287,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                         className: "text-center mb-4 text-slate-400 font-bold",
                                         children: [
                                             "Round ",
-                                            gameState?.currentRound || 1
+                                            gameState?.round || 1
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/app/room/[roomId]/page.tsx",
-                                        lineNumber: 218,
+                                        lineNumber: 301,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                         className: "flex justify-center gap-4 mb-10",
-                                        children: gameState?.revealed?.map((c, i)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$render$2f$components$2f$motion$2f$proxy$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["motion"].div, {
+                                        children: (gameState?.revealed || []).map((c, i)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$render$2f$components$2f$motion$2f$proxy$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["motion"].div, {
                                                 className: `w-16 h-20 flex items-center justify-center text-3xl font-bold rounded-xl shadow-xl transition-all duration-300 ${c === "_" ? "bg-white/10" : "bg-gradient-to-br from-blue-600 to-purple-600 scale-110"}`,
                                                 children: c === "_" ? "" : c
                                             }, i, false, {
                                                 fileName: "[project]/app/room/[roomId]/page.tsx",
-                                                lineNumber: 224,
+                                                lineNumber: 307,
                                                 columnNumber: 19
                                             }, this))
                                     }, void 0, false, {
                                         fileName: "[project]/app/room/[roomId]/page.tsx",
-                                        lineNumber: 222,
+                                        lineNumber: 305,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("form", {
@@ -580,7 +719,7 @@ function RoomPage() {
                                                 className: "h-16 text-2xl bg-black/50 border border-white/10"
                                             }, void 0, false, {
                                                 fileName: "[project]/app/room/[roomId]/page.tsx",
-                                                lineNumber: 238,
+                                                lineNumber: 321,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$Button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -590,13 +729,13 @@ function RoomPage() {
                                                 children: "Guess"
                                             }, void 0, false, {
                                                 fileName: "[project]/app/room/[roomId]/page.tsx",
-                                                lineNumber: 243,
+                                                lineNumber: 326,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/app/room/[roomId]/page.tsx",
-                                        lineNumber: 237,
+                                        lineNumber: 320,
                                         columnNumber: 15
                                     }, this),
                                     message && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$render$2f$components$2f$motion$2f$proxy$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["motion"].div, {
@@ -615,13 +754,13 @@ function RoomPage() {
                                         children: message
                                     }, void 0, false, {
                                         fileName: "[project]/app/room/[roomId]/page.tsx",
-                                        lineNumber: 256,
+                                        lineNumber: 339,
                                         columnNumber: 17
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/room/[roomId]/page.tsx",
-                                lineNumber: 193,
+                                lineNumber: 276,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -632,66 +771,116 @@ function RoomPage() {
                                         children: "Players"
                                     }, void 0, false, {
                                         fileName: "[project]/app/room/[roomId]/page.tsx",
-                                        lineNumber: 271,
+                                        lineNumber: 354,
                                         columnNumber: 15
                                     }, this),
                                     roomData.players.map((p)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                            className: "mb-2",
+                                            className: "mb-3",
                                             children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                                className: "flex justify-between",
+                                                className: "flex justify-between items-center",
                                                 children: [
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                                        children: p.username
-                                                    }, void 0, false, {
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                        className: "flex items-center gap-2",
+                                                        children: [
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                                className: "text-xl",
+                                                                children: p.avatar || "👤"
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/app/room/[roomId]/page.tsx",
+                                                                lineNumber: 361,
+                                                                columnNumber: 23
+                                                            }, this),
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                                children: p.username
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/app/room/[roomId]/page.tsx",
+                                                                lineNumber: 365,
+                                                                columnNumber: 23
+                                                            }, this),
+                                                            p.socketId === socketRef.current.id && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                                className: "text-blue-400 text-xs",
+                                                                children: "YOU"
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/app/room/[roomId]/page.tsx",
+                                                                lineNumber: 368,
+                                                                columnNumber: 25
+                                                            }, this)
+                                                        ]
+                                                    }, void 0, true, {
                                                         fileName: "[project]/app/room/[roomId]/page.tsx",
-                                                        lineNumber: 275,
+                                                        lineNumber: 360,
                                                         columnNumber: 21
                                                     }, this),
-                                                    p.socketId === socketRef.current.id && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                                        className: "text-blue-400 text-xs",
-                                                        children: "YOU"
-                                                    }, void 0, false, {
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                        className: "flex items-center gap-2",
+                                                        children: [
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                                className: "font-bold",
+                                                                children: gameState?.scores?.[p.socketId] || 0
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/app/room/[roomId]/page.tsx",
+                                                                lineNumber: 374,
+                                                                columnNumber: 23
+                                                            }, this),
+                                                            lastWinner === p.socketId && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$render$2f$components$2f$motion$2f$proxy$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["motion"].span, {
+                                                                initial: {
+                                                                    y: 10,
+                                                                    opacity: 0
+                                                                },
+                                                                animate: {
+                                                                    y: -10,
+                                                                    opacity: 1
+                                                                },
+                                                                className: "text-green-400 text-sm font-bold",
+                                                                children: "+1"
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/app/room/[roomId]/page.tsx",
+                                                                lineNumber: 379,
+                                                                columnNumber: 25
+                                                            }, this)
+                                                        ]
+                                                    }, void 0, true, {
                                                         fileName: "[project]/app/room/[roomId]/page.tsx",
-                                                        lineNumber: 277,
-                                                        columnNumber: 23
+                                                        lineNumber: 373,
+                                                        columnNumber: 21
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/app/room/[roomId]/page.tsx",
-                                                lineNumber: 274,
+                                                lineNumber: 357,
                                                 columnNumber: 19
                                             }, this)
                                         }, p.socketId, false, {
                                             fileName: "[project]/app/room/[roomId]/page.tsx",
-                                            lineNumber: 273,
+                                            lineNumber: 356,
                                             columnNumber: 17
                                         }, this))
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/room/[roomId]/page.tsx",
-                                lineNumber: 270,
+                                lineNumber: 353,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/room/[roomId]/page.tsx",
-                        lineNumber: 190,
+                        lineNumber: 273,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/app/room/[roomId]/page.tsx",
-                lineNumber: 164,
+                lineNumber: 247,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/app/room/[roomId]/page.tsx",
-        lineNumber: 156,
+        lineNumber: 185,
         columnNumber: 5
     }, this);
 }
-_s(RoomPage, "sHEVFKx3Yz6xvxp48VOI9JlmNMQ=", false, function() {
+_s(RoomPage, "uB40jHQqytbRGiba37T6npN8c4I=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useParams"],
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRouter"]

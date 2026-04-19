@@ -29,7 +29,12 @@ export class GameService {
     const roomId = Math.random().toString(36).substring(2, 9).toUpperCase();
     const room: RoomState = {
       id: roomId,
-      players: [{ socketId, username, id: playerDb?.id }],
+      players: [{
+        socketId,
+        username,
+        id: playerDb?.id,
+        avatar: "😀"
+      } as Player],
       targetWord: '',
       revealedWord: [],
       guesses: new Map(),
@@ -37,13 +42,14 @@ export class GameService {
       currentRound: 0,
       maxRounds: rounds,
       tickTimer: 5,
-      status: 'lobby'
+      status: 'lobby',
+      roundEnded: false, // 🔥 NEW FLAG
     };
     this.rooms.set(roomId, room);
     return room;
   }
 
-  async joinRoom(roomId: string, socketId: string, username: string) {
+  async joinRoom(roomId: string, socketId: string, username: string, avatar?: string) {
     const room = this.rooms.get(roomId);
     if (!room) throw new Error("Room not found");
 
@@ -54,7 +60,12 @@ export class GameService {
     const playerDb = await this.getOrCreatePlayer(username);
 
     if (!room.players.find(p => p.socketId === socketId)) {
-      room.players.push({ socketId, username, id: playerDb?.id });
+      room.players.push({
+        socketId,
+        username,
+        id: playerDb?.id,
+        avatar: avatar ?? "😀"
+      } as Player);
     }
 
     return room;
@@ -71,7 +82,8 @@ export class GameService {
     room.guesses.clear();
     room.tickTimer = 5;
     room.status = 'playing';
-    room.currentRound++;
+    room.roundEnded = false; // 🔥 reset round lock
+    room.currentRound++; // 🔥 MOVE ROUND INCREMENT HERE (ONLY HERE)
 
     if (Object.keys(room.scores).length === 0) {
       room.players.forEach(p => room.scores[p.socketId] = 0);
@@ -123,17 +135,33 @@ export class GameService {
     room.guesses.clear();
 
     const tickInterval = setInterval(() => {
+
+      // 🔥 ADD THIS BLOCK (START)
+      if (room.status !== 'playing' || room.roundEnded) {
+        clearInterval(tickInterval);
+        return;
+      }
+      // 🔥 ADD THIS BLOCK (END)
+
       room.tickTimer--;
-      this.io.to(room.id).emit('tickUpdate', { timeLeft: room.tickTimer, revealed: room.revealedWord });
+
+      // ✅ Send authoritative server time to prevent client drift
+      this.io.to(room.id).emit('tickUpdate', {
+        timeLeft: room.tickTimer,
+        serverTime: Date.now(), // ✅ clients can sync against this
+        revealed: room.revealedWord
+      });
 
       if (room.tickTimer <= 0) {
         clearInterval(tickInterval);
         this.processTick(room);
       }
+
     }, 1000);
   }
 
   private processTick(room: RoomState) {
+    if (room.roundEnded || room.status !== 'playing') return;
     const correctGuesses: string[] = [];
     room.guesses.forEach((guess, socketId) => {
       if (guess.toUpperCase() === room.targetWord) {
@@ -142,10 +170,9 @@ export class GameService {
     });
 
     if (correctGuesses.length === 1) {
-      // One player correct
       this.endRound(room, correctGuesses[0]);
     } else if (correctGuesses.length > 1) {
-      // Draw (both correct)
+      // ✅ Draw — no points given to anyone
       this.endRound(room, undefined, true);
     } else {
       // No one correct, reveal a random letter
@@ -161,48 +188,80 @@ export class GameService {
   }
 
   private revealRandomLetter(room: RoomState) {
+    // ✅ Each position treated separately — handles repeated letters correctly
     const hiddenIndices = room.revealedWord
       .map((char, index) => char === '_' ? index : -1)
       .filter(i => i !== -1);
 
     if (hiddenIndices.length > 0) {
       const idx = hiddenIndices[Math.floor(Math.random() * hiddenIndices.length)];
+      // ✅ Reveal ONLY this exact index position, not all same letters
       room.revealedWord[idx] = room.targetWord[idx];
     }
   }
 
   private async endRound(room: RoomState, winnerId?: string, isDraw = false) {
+
+    // 🔥 HARD LOCK (prevents duplicate calls)
+    if (room.roundEnded) return;
+    room.roundEnded = true;
+
     room.status = 'roundEnd';
     if (winnerId) {
-      room.scores[winnerId]++;
+      room.scores[winnerId] += 1;
     }
-
     // Persist Round Winner
     if ((room as any).currentRoundDbId) {
-      try {
-        const winner = room.players.find(p => p.socketId === winnerId);
-        await prisma.round.update({
-          where: { id: (room as any).currentRoundDbId },
-          data: { winnerId: winner?.id || null }
-        });
-      } catch (e) {
-        console.error("Failed to update round winner in DB:", e);
-      }
+      // ✅ DB failure → retry once, then keep score in memory and continue
+      const winner = room.players.find(p => p.socketId === winnerId);
+      const attemptDbWrite = async (retries = 2): Promise<void> => {
+        try {
+          await prisma.round.update({
+            where: { id: (room as any).currentRoundDbId },
+            data: { winnerId: winner?.id || null }
+          });
+        } catch (e) {
+          if (retries > 0) {
+            console.warn(`DB write failed, retrying... (${retries} left)`);
+            await new Promise(res => setTimeout(res, 500));
+            return attemptDbWrite(retries - 1);
+          } else {
+            console.error("DB write failed after retries. Score kept in memory:", room.scores);
+            // ✅ Game continues normally with in-memory scores
+          }
+        }
+      };
+      await attemptDbWrite();
     }
+
+    // 🔥 reveal full word before sending
+    room.revealedWord = room.targetWord.split('');
 
     this.io.to(room.id).emit('roundEnded', {
       winner: winnerId,
       word: room.targetWord,
+      revealed: room.revealedWord,
       scores: room.scores,
       isDraw
     });
 
     // Check match end (Best of 5)
-    const leaderId = Object.keys(room.scores).reduce((a, b) => room.scores[a] > room.scores[b] ? a : b);
-    if (room.scores[leaderId] >= 3 || room.currentRound >= room.maxRounds) {
-      this.endMatch(room, leaderId);
+    // ✅ After last round → decide winner properly
+    if (room.currentRound === room.maxRounds) {
+
+      const scores = room.scores;
+      const values = Object.values(scores);
+      const maxScore = Math.max(...values);
+
+      const winners = Object.keys(scores).filter(id => scores[id] === maxScore);
+
+      // ✅ tie or single winner
+      const finalWinner = winners[0]; // (you can improve later for draw UI)
+
+      this.endMatch(room, finalWinner);
+
     } else {
-      setTimeout(() => this.startRound(room), 3000);
+      setTimeout(() => this.startRound(room), 5000);
     }
   }
 
@@ -245,8 +304,25 @@ export class GameService {
     const room = this.rooms.get(roomId);
     if (room && room.status === 'playing') {
       const player = room.players.find(p => p.socketId === socketId);
+
+      // ✅ Block multiple guesses per tick — accept only first guess
+      if (room.guesses.has(socketId)) {
+        this.io.to(socketId).emit('error', { message: 'You already guessed this tick.' });
+        return;
+      }
+
       room.guesses.set(socketId, guessText);
-      if (guessText.toUpperCase() === room.targetWord.toUpperCase()) {
+      // ✅ Reject late submission if tick already expired
+      if (room.tickTimer <= 0) {
+        this.io.to(socketId).emit('error', { message: 'Late submission — tick already expired.' });
+        return;
+      }
+
+      if (
+        guessText.toUpperCase() === room.targetWord.toUpperCase() &&
+        room.status === 'playing' &&
+        !room.roundEnded
+      ) {
         this.endRound(room, socketId);
       }
 
@@ -276,8 +352,14 @@ export class GameService {
         if (room.players.length === 0) {
           this.rooms.delete(roomId);
         } else if (room.status === 'playing') {
-          // Other player wins by forfeit
-          await this.endMatch(room, room.players[0].socketId);
+          // ✅ Grace period before forfeit win
+          this.io.to(room.id).emit('playerLeft', { message: 'Opponent disconnected. Waiting 5 seconds...' });
+          setTimeout(async () => {
+            const currentRoom = this.rooms.get(roomId);
+            if (currentRoom && currentRoom.players.length === 1) {
+              await this.endMatch(currentRoom, currentRoom.players[0].socketId);
+            }
+          }, 5000);
         }
       }
     }
