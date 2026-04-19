@@ -8,8 +8,8 @@
   },
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "next build && npx esbuild server.ts --bundle --platform=node --outfile=server.js",
-    "start": "node server.js",
+    "build": "next build",
+    "start": "tsx server.ts",
     "lint": "next lint",
     "postinstall": "prisma generate"
   },
