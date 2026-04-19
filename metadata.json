@@ -1,0 +1,6 @@
+{
+  "name": "WordQuest Real-time Multiplayer",
+  "description": "A high-stakes real-time multiplayer word guessing game with glassmorphic UI and WebSocket-powered gameplay.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
