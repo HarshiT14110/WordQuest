@@ -9,7 +9,7 @@ dotenv.config();
 
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = '0.0.0.0';
-const port = 3000;
+const port = parseInt(process.env.PORT || '3000'); // ✅ Render sets PORT automatically
 
 // Initialize Next.js
 const app = next({ dev, hostname, port });

@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "next build",
-    "start": "NODE_ENV=production node server.ts",
+    "build": "tsc --project tsconfig.server.json && next build",
+    "start": "NODE_ENV=production node dist/server.js",
     "lint": "next lint",
     "postinstall": "prisma generate"
   },
