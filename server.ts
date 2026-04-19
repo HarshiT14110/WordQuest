@@ -5,7 +5,7 @@ import { Server } from 'socket.io';
 import * as dotenv from 'dotenv';
 import { GameService } from './server/services/GameService.js';
 
-dotenv.config();
+
 
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = '0.0.0.0';
