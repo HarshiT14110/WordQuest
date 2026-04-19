@@ -1,8 +1,16 @@
-node_modules/
-build/
-dist/
-coverage/
-.DS_Store
+# dependencies
+/node_modules
+
+# next.js build
+/.next
+
+# environment variables
+.env
+.env.local
+
+# logs
 *.log
-.env*
-!.env.example
+
+# OS files
+.DS_Store
+Thumbs.db
