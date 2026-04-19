@@ -2,7 +2,6 @@ import { createServer } from 'node:http';
 import { parse } from 'node:url';
 import next from 'next';
 import { Server } from 'socket.io';
-import * as dotenv from 'dotenv';
 import { GameService } from './server/services/GameService.js';
 
 
